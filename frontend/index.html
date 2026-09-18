@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Board</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { margin-bottom: 20px; font-size: 24px; }
+        h2 { margin: 20px 0 10px; font-size: 18px; }
+        .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; margin-bottom: 8px; }
+        button { padding: 8px 16px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        button:hover { background: #0055aa; }
+        button.delete-btn { background: #cc3333; padding: 4px 10px; font-size: 12px; }
+        button.delete-btn:hover { background: #aa2222; }
+        .checklist { list-style: none; }
+        .checklist li { padding: 8px 0; display: flex; align-items: center; gap: 8px; }
+        .checklist .status { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #ccc; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+        .checklist .status.pass { background: #28a745; border-color: #28a745; color: white; }
+        .messages-list { list-style: none; }
+        .messages-list li { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .messages-list li:last-child { border-bottom: none; }
+        .msg-text { flex: 1; word-break: break-word; }
+        .msg-meta { font-size: 12px; color: #999; margin-left: 10px; white-space: nowrap; }
+        .response { background: #f9f9f9; padding: 10px; border-radius: 4px; margin-top: 8px; font-family: monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow-y: auto; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📋 Message Board</h1>
+
+    <!-- Checklist -->
+    <div class="card">
+        <h2>Checklist</h2>
+        <ul class="checklist" id="checklist">
+            <li><span class="status pass" id="chk-health">✓</span> Stage 1: Health & Frontend</li>
+            <li><span class="status pass" id="chk-echo-text">✓</span> Stage 2: Echo (plain text)</li>
+            <li><span class="status pass" id="chk-echo-json">✓</span> Stage 3: Echo (JSON)</li>
+            <li><span class="status" id="chk-create">○</span> Stage 4: Create message</li>
+            <li><span class="status" id="chk-list">○</span> Stage 5: List messages</li>
+            <li><span class="status" id="chk-delete">○</span> Stage 6: Delete message</li>
+        </ul>
+    </div>
+
+    <!-- Echo Plain Text -->
+    <div class="card">
+        <h2>Echo (Plain Text)</h2>
+        <input type="text" id="echo-text-input" placeholder="Type something...">
+        <button onclick="echoText()">Send</button>
+        <div id="echo-text-response" class="response hidden"></div>
+    </div>
+
+    <!-- Echo JSON -->
+    <div class="card">
+        <h2>Echo (JSON)</h2>
+        <input type="text" id="echo-json-input" placeholder='{"message": "hello"}'>
+        <button onclick="echoJson()">Send</button>
+        <div id="echo-json-response" class="response hidden"></div>
+    </div>
+
+    <!-- Create Message -->
+    <div class="card">
+        <h2>Create Message</h2>
+        <input type="text" id="create-input" placeholder="Write a message...">
+        <button onclick="createMessage()">Create</button>
+        <div id="create-response" class="response hidden"></div>
+    </div>
+
+    <!-- Messages List -->
+    <div class="card">
+        <h2>Messages</h2>
+        <button onclick="loadMessages()" style="margin-bottom: 10px;">Refresh</button>
+        <ul class="messages-list" id="messages-list">
+            <li style="color: #999;">No messages yet.</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+const API = '';
+
+// --- Checklist helpers ---
+function markPass(id) {
+    const el = document.getElementById(id);
+    if (el) { el.className = 'status pass'; el.textContent = '✓'; }
+}
+function markFail(id) {
+    const el = document.getElementById(id);
+    if (el) { el.className = 'status'; el.textContent = '○'; }
+}
+
+// --- Echo plain text ---
+async function echoText() {
+    const input = document.getElementById('echo-text-input').value;
+    const respEl = document.getElementById('echo-text-response');
+    try {
+        const res = await fetch(API + '/echo', { method: 'POST', body: input });
+        const text = await res.text();
+        respEl.textContent = `Status: ${res.status}\n${text}`;
+        respEl.classList.remove('hidden');
+        markPass('chk-echo-text');
+    } catch (e) {
+        respEl.textContent = 'Error: ' + e.message;
+        respEl.classList.remove('hidden');
+    }
+}
+
+// --- Echo JSON ---
+async function echoJson() {
+    const input = document.getElementById('echo-json-input').value;
+    const respEl = document.getElementById('echo-json-response');
+    try {
+        const res = await fetch(API + '/echo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: input
+        });
+        const text = await res.text();
+        respEl.textContent = `Status: ${res.status}\n${text}`;
+        respEl.classList.remove('hidden');
+        markPass('chk-echo-json');
+    } catch (e) {
+        respEl.textContent = 'Error: ' + e.message;
+        respEl.classList.remove('hidden');
+    }
+}
+
+// --- Create message ---
+async function createMessage() {
+    const input = document.getElementById('create-input').value;
+    const respEl = document.getElementById('create-response');
+    if (!input.trim()) return;
+    try {
+        const res = await fetch(API + '/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: input })
+        });
+        const text = await res.text();
+        respEl.textContent = `Status: ${res.status}\n${text}`;
+        respEl.classList.remove('hidden');
+        markPass('chk-create');
+        loadMessages();
+    } catch (e) {
+        respEl.textContent = 'Error: ' + e.message;
+        respEl.classList.remove('hidden');
+    }
+}
+
+// --- List messages ---
+async function loadMessages() {
+    const listEl = document.getElementById('messages-list');
+    try {
+        const res = await fetch(API + '/messages');
+        const msgs = await res.json();
+        markPass('chk-list');
+        if (msgs.length === 0) {
+            listEl.innerHTML = '<li style="color: #999;">No messages yet.</li>';
+            return;
+        }
+        listEl.innerHTML = msgs.map(m => `
+            <li>
+                <span class="msg-text">${escapeHtml(m.message)}</span>
+                <span class="msg-meta">#${m.id} · ${formatDate(m.created_at)}</span>
+                <button class="delete-btn" onclick="deleteMessage(${m.id})">Delete</button>
+            </li>
+        `).join('');
+    } catch (e) {
+        listEl.innerHTML = `<li style="color: red;">Error: ${e.message}</li>`;
+    }
+}
+
+// --- Delete message ---
+async function deleteMessage(id) {
+    try {
+        const res = await fetch(API + `/messages/${id}`, { method: 'DELETE' });
+        if (res.status === 204) {
+            markPass('chk-delete');
+            loadMessages();
+        } else {
+            alert('Failed to delete message');
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+// --- Helpers ---
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function formatDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleString();
+}
+
+// Initial health check
+(async () => {
+    try {
+        const res = await fetch(API + '/health');
+        if (res.status === 200) markPass('chk-health');
+    } catch {}
+})();
+
+// Auto-refresh messages every 5s
+setInterval(loadMessages, 5000);
+</script>
+</body>
+</html>
